@@ -27,3 +27,4 @@ A simple text-based RPG game played in the command line.
    ```bash
    git clone https://github.com/Dara0002/game
    cd your-repo-folder
+   python main.py
