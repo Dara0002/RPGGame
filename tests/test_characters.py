@@ -15,8 +15,8 @@ def test_character_initialization():
 def test_character_attack():
     attacker = Character(test_character)
     defender = Monster(test_monster)
-    starting_hp = defender.health
+    starting_defense = defender.defense
 
     attacker.attack_target(defender)
 
-    assert defender.health < starting_hp
+    assert defender.defense < starting_defense
