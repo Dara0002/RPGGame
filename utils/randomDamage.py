@@ -1,5 +1,6 @@
 import random
 
+
 def random_damage(base_damage, base_defence, target_health):
     new_damage = int(random.randint(base_damage // 2, base_damage * 2))
     if base_defence > 0:
@@ -9,7 +10,7 @@ def random_damage(base_damage, base_defence, target_health):
             target_health -= new_damage
         else:
             base_defence -= new_damage
-        return(new_damage, target_health, base_defence)
+        return (new_damage, target_health, base_defence)
     else:
         target_health -= new_damage
-        return(new_damage, max(0, target_health), base_defence)
+        return (new_damage, max(0, target_health), base_defence)

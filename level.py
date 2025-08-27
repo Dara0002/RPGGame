@@ -15,7 +15,10 @@ levels = {
     14: {"xp_required": 8000, "rewards": {"gold": 700, "items": ["Greater Potion"]}},
     15: {"xp_required": 9300, "rewards": {"gold": 800, "items": ["Knight Sword"]}},
     16: {"xp_required": 10700, "rewards": {"gold": 900, "items": []}},
-    17: {"xp_required": 12200, "rewards": {"gold": 1000, "items": ["Dragon Scale Armor"]}},
+    17: {
+        "xp_required": 12200,
+        "rewards": {"gold": 1000, "items": ["Dragon Scale Armor"]},
+    },
     18: {"xp_required": 13800, "rewards": {"gold": 1100, "items": ["Superior Potion"]}},
     19: {"xp_required": 15500, "rewards": {"gold": 1250, "items": ["Excalibur Sword"]}},
     20: {"xp_required": 17300, "rewards": {"gold": 1500, "items": ["Mythril Armor"]}},

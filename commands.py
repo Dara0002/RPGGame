@@ -5,18 +5,21 @@ import sys
 
 COMMAND_REGISTRY = {}
 
+
 def command_name(name: str):
     """
     Decorator to register a function with a custom command name.
     """
+
     def decorator(func):
         COMMAND_REGISTRY[name.lower()] = func
         return func
+
     return decorator
 
 
 def init_db():
-    conn = sqlite3.connect('data.db')
+    conn = sqlite3.connect("data.db")
     conn.row_factory = sqlite3.Row
 
     return conn
@@ -25,9 +28,13 @@ def init_db():
 @command_name("shop")
 def shop():
     for char, data in characters.items():
-        print(f"{char}:\n    " + "\n    ".join(f"{attr}: {stat}" 
-                                                for attr, stat in data.items() 
-                                                if attr[0] != "_") + "\n")   
+        print(
+            f"{char}:\n    "
+            + "\n    ".join(
+                f"{attr}: {stat}" for attr, stat in data.items() if attr[0] != "_"
+            )
+            + "\n"
+        )
 
 
 @command_name("shop buy")
@@ -43,14 +50,16 @@ def shop_buy(identifier: str | int):
         conn.close()
         return
 
-    gold = data['gold']
-    progress_id = data['id']
+    gold = data["gold"]
+    progress_id = data["id"]
     name: str | None = None
     character: dict | None = None
 
     if isinstance(identifier, int):
         if identifier > (len(characters) + 1):
-            print(f"Position {identifier} exceeds maximum range of {len(characters) + 1}. (invalid position)")
+            print(
+                f"Position {identifier} exceeds maximum range of {len(characters) + 1}. (invalid position)"
+            )
 
         for character_name, character_data in characters.items():
             if character_data["_position"] == identifier:
@@ -74,13 +83,18 @@ def shop_buy(identifier: str | int):
         conn.close()
         return
 
-    if gold >= character['price']:
-        gold -= character['price']
-        c.execute("UPDATE progress SET gold = ?, character = ? WHERE id = ?", (gold, name, progress_id))
+    if gold >= character["price"]:
+        gold -= character["price"]
+        c.execute(
+            "UPDATE progress SET gold = ?, character = ? WHERE id = ?",
+            (gold, name, progress_id),
+        )
         conn.commit()
         print(f"Successfully bought {name}\n    Remaining gold: {gold}")
     else:
-        print(f"Not enough gold to buy {name}. You have {gold}, need {character['price']}.")
+        print(
+            f"Not enough gold to buy {name}. You have {gold}, need {character['price']}."
+        )
 
     conn.close()
 

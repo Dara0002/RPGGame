@@ -3,17 +3,23 @@ import random
 from characters import Character
 from monsters import Monster
 
+
 def attack(attacker: Monster | Character, attacked: Monster | Character):
     if isinstance(attacker, Character):
         print(f"Attacking {attacked.name}...\n")
         time.sleep(1)
         damage, health, defense = attacker.attack_target(attacked)
-        print(f"You attacked {attacked.name} for {str(damage)} damage and left them at {str(health)} health, {str(defense)} defense")
+        print(
+            f"You attacked {attacked.name} for {str(damage)} damage and left them at {str(health)} health, {str(defense)} defense"
+        )
     else:
         print(f"{attacker.name} is attacking...\n")
         time.sleep(1)
         damage, health, defense = attacker.attack_target(attacked)
-        print(f"You were attacked by {attacker.name} for {str(damage)} damage and left with {str(health)} health, {str(defense)} defense")
+        print(
+            f"You were attacked by {attacker.name} for {str(damage)} damage and left with {str(health)} health, {str(defense)} defense"
+        )
+
 
 def battle(player: Character, enemy: Monster):
     turn = 0
@@ -36,7 +42,7 @@ def battle(player: Character, enemy: Monster):
                 time.sleep(1)
                 attack(enemy, player)
             continue
-        
+
         if turn % 2 == 0 and first_turn == enemy:
             print("Your turn!")
             attack(player, enemy)
@@ -56,5 +62,5 @@ def battle(player: Character, enemy: Monster):
         elif enemy.health <= 0:
             print("Congratulations! You won!")
             return True
-        
+
         continue

@@ -14,7 +14,7 @@ first_run = True
 
 def find_level_from_xp(xp):
     for key, data in levels.items():
-        if data['xp_required'] <= xp and levels[key + 1]['xp_required'] > xp:
+        if data["xp_required"] <= xp and levels[key + 1]["xp_required"] > xp:
             return key
     return None
 
@@ -30,14 +30,14 @@ def xp_until_next_level(xp):
     else:
         next_level_xp = None
     return next_level_xp - xp
-    
+
 
 def parse_command(raw: str) -> Tuple[Optional[str], Optional[str]]:
     """
     Splits raw input into a command_key and argument string.
     Returns (None, None) if input is empty.
     """
-    
+
     from commands import COMMAND_REGISTRY as commands
 
     raw = raw.strip()
@@ -71,7 +71,7 @@ def handle_command(raw_command: str):
     from commands import COMMAND_REGISTRY as commands
 
     command_key, argument = parse_command(raw_command)
-    
+
     if command_key is None:
         return
 
@@ -100,7 +100,7 @@ def command_loop():
 
 
 def init_db():
-    conn = sqlite3.connect('data.db')
+    conn = sqlite3.connect("data.db")
     conn.row_factory = sqlite3.Row
 
     create_tables(conn)
@@ -121,17 +121,17 @@ def start():
     c = conn.cursor()
     c.execute("SELECT * FROM progress")
     data = c.fetchone()
-    stage = int(data['stage'])
+    stage = int(data["stage"])
     stage_data: Stage = stages[stage]
     results = {}
 
-    player = Character(data['character'])
+    player = Character(data["character"])
 
-    if data['first_time'] == 1:
+    if data["first_time"] == 1:
         print("Welcome to the super duper good RPG Game!")
-        print("You will be starting with the " + data['character'] + " character")
-        
-        for enemy, amount in stage_data['enemies'].items():
+        print("You will be starting with the " + data["character"] + " character")
+
+        for enemy, amount in stage_data["enemies"].items():
             results[enemy] = []
             for i in range(1, amount + 1):
                 print(f"\n{enemy} - {i}/{amount}")
@@ -140,14 +140,21 @@ def start():
                 results[enemy].append(result)
 
         if all(all(outcomes) for outcomes in results.values()):
-            print("\nNicely done, you passed the first stage and earned 50 xp and 10 gold! Time for a little break")
-            print("You can type 'shop' and 'shop buy <character_name | character_position>' to use the shop and upgrade your character.")
+            print(
+                "\nNicely done, you passed the first stage and earned 50 xp and 10 gold! Time for a little break"
+            )
+            print(
+                "You can type 'shop' and 'shop buy <character_name | character_position>' to use the shop and upgrade your character."
+            )
             print("When you feel ready, type 'start' to resume the game.")
-            c.execute("UPDATE progress SET gold = ?, xp = ?, first_time = 0, stage = 2 WHERE id = ?", (10, 50, data['id']))
+            c.execute(
+                "UPDATE progress SET gold = ?, xp = ?, first_time = 0, stage = 2 WHERE id = ?",
+                (10, 50, data["id"]),
+            )
             conn.commit()
 
     else:
-        for enemy, amount in stage_data['enemies'].items():
+        for enemy, amount in stage_data["enemies"].items():
             results[enemy] = []
             for i in range(1, amount + 1):
                 print(f"\n{enemy} - {i}/{amount}")
@@ -156,25 +163,53 @@ def start():
                 results[enemy].append(result)
                 if not result:
                     break
-        
+
         if all(all(outcomes) for outcomes in results.values()):
-            stage_rewards = stage_data['rewards']
-            current_level = find_level_from_xp(data['xp'])
-            new_level = find_level_from_xp(data['xp'] + stage_rewards['xp'])
+            stage_rewards = stage_data["rewards"]
+            current_level = find_level_from_xp(data["xp"])
+            new_level = find_level_from_xp(data["xp"] + stage_rewards["xp"])
 
             if not stage_rewards or current_level is None or new_level is None:
                 return
 
-            print(f"\nYou passed stage {stage}\nrewards:\n    " + "\n    ".join(f"{reward}: {value}" for reward, value in stage_rewards.items()))
+            print(
+                f"\nYou passed stage {stage}\nrewards:\n    "
+                + "\n    ".join(
+                    f"{reward}: {value}" for reward, value in stage_rewards.items()
+                )
+            )
 
             if current_level != new_level:
-                level_rewards = levels[new_level]['rewards']
-                print(f"New level reached!\n    Level {current_level} -> Level {new_level}")
-                print(f"\n    rewards:\n        " + "\n        ".join(f"{key}: {value}" for key, value in level_rewards.items()))
+                level_rewards = levels[new_level]["rewards"]
+                print(
+                    f"New level reached!\n    Level {current_level} -> Level {new_level}"
+                )
+                print(
+                    f"\n    rewards:\n        "
+                    + "\n        ".join(
+                        f"{key}: {value}" for key, value in level_rewards.items()
+                    )
+                )
 
-            print(f"Level progress: \n    Level: {new_level}\n    {data['xp'] + stage_rewards['xp']} / {levels[new_level + 1]['xp_required']}")
+            print(
+                f"Level progress: \n    Level: {new_level}\n    {data['xp'] + stage_rewards['xp']} / {levels[new_level + 1]['xp_required']}"
+            )
 
-            c.execute("UPDATE progress SET gold = ?, xp = ?, stage = ? WHERE id = ?", (data['gold'] + stage_rewards['gold'] + levels[new_level]['rewards']['gold'] if not new_level == current_level else 0, data['xp'] + stage_rewards['xp'], stage + 1, data['id']))
+            c.execute(
+                "UPDATE progress SET gold = ?, xp = ?, stage = ? WHERE id = ?",
+                (
+                    (
+                        data["gold"]
+                        + stage_rewards["gold"]
+                        + levels[new_level]["rewards"]["gold"]
+                        if not new_level == current_level
+                        else 0
+                    ),
+                    data["xp"] + stage_rewards["xp"],
+                    stage + 1,
+                    data["id"],
+                ),
+            )
             conn.commit()
 
 
