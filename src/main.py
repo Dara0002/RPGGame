@@ -1,12 +1,12 @@
-from battle import battle
+from src.battle import battle
 import sqlite3
 import uuid
-from schemas import create_tables
-from gameTypes import Stage
-from characters import Character
-from monsters import Monster
-from stages import stages
-from level import levels
+from src.data.schemas import create_tables
+from src.types.types import Stage
+from src.data.characters import Character
+from src.data.monsters import Monster
+from src.data.stages import stages
+from src.data.level import levels
 from typing import Tuple, Optional, Union
 
 first_run = True
@@ -38,7 +38,7 @@ def parse_command(raw: str) -> Tuple[Optional[str], Optional[str]]:
     Returns (None, None) if input is empty.
     """
 
-    from commands import COMMAND_REGISTRY as commands
+    from src.commands.commands import COMMAND_REGISTRY as commands
 
     raw = raw.strip()
     if not raw:
@@ -68,7 +68,7 @@ def convert_argument(arg: Optional[str]) -> Union[str, int, None]:
 
 
 def handle_command(raw_command: str):
-    from commands import COMMAND_REGISTRY as commands
+    from src.commands.commands import COMMAND_REGISTRY as commands
 
     command_key, argument = parse_command(raw_command)
 

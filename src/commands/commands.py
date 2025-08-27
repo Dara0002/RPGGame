@@ -1,6 +1,6 @@
-from characters import characters
+from src.data.characters import characters
 import sqlite3
-from main import start as start_game
+from src.main import start as start_game
 import sys
 
 COMMAND_REGISTRY = {}

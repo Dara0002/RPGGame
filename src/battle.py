@@ -1,7 +1,7 @@
 import time
 import random
-from characters import Character
-from monsters import Monster
+from src.data.characters import Character
+from src.data.monsters import Monster
 
 
 def attack(attacker: Monster | Character, attacked: Monster | Character):

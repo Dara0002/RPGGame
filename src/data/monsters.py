@@ -1,4 +1,4 @@
-from utils.randomDamage import random_damage
+from src.utils.randomDamage import random_damage
 import uuid
 from typing import Optional
 

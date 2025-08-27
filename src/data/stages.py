@@ -1,10 +1,5 @@
-from typing import TypedDict, Dict
-
-
-class Stage(TypedDict):
-    enemies: Dict[str, int]
-    rewards: Dict[str, int]
-
+from typing import Dict
+from src.types.types import Stage
 
 stages: Dict[int, Stage] = {
     1: {"enemies": {"Goblin": 2}, "rewards": {"xp": 50, "gold": 10}},

@@ -1,5 +1,5 @@
-from characters import Character
-from monsters import Monster
+from src.data.characters import Character
+from src.data.monsters import Monster
 
 test_character = "Celeste Dawnseer"
 test_monster = "Demon Lord"
