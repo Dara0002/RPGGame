@@ -3,18 +3,21 @@ import sqlite3
 import uuid
 from schemas import create_tables
 from gameTypes import Stage
-from characters import Character, characters
-from monsters import Monster, monsters
+from characters import Character
+from monsters import Monster
 from stages import stages
 from level import levels
+from typing import Tuple, Optional, Union
 
 first_run = True
+
 
 def find_level_from_xp(xp):
     for key, data in levels.items():
         if data['xp_required'] <= xp and levels[key + 1]['xp_required'] > xp:
             return key
     return None
+
 
 def xp_until_next_level(xp):
     current_level: int | None = find_level_from_xp(xp)
@@ -29,27 +32,72 @@ def xp_until_next_level(xp):
     return next_level_xp - xp
     
 
-def handle_command(command: str):
-    from command_registry import commands
+def parse_command(raw: str) -> Tuple[Optional[str], Optional[str]]:
+    """
+    Splits raw input into a command_key and argument string.
+    Returns (None, None) if input is empty.
+    """
+    
+    from commands import COMMAND_REGISTRY as commands
 
-    split_command = command.split(" ")
-    if len(split_command) >= 2:
-        command_key = f"{split_command[0]} {split_command[1]}"
-        argument = " ".join(split_command[2:])
-        if command_key in commands:
-            commands[command_key](argument)
+    raw = raw.strip()
+    if not raw:
+        return None, None
+
+    parts = raw.split()
+    for i in range(len(parts), 0, -1):
+        key = " ".join(parts[:i]).lower()
+        if key in commands:
+            argument = " ".join(parts[i:]) if i < len(parts) else None
+            return key, argument
+    return parts[0].lower(), " ".join(parts[1:]) if len(parts) > 1 else None
+
+
+def convert_argument(arg: Optional[str]) -> Union[str, int, None]:
+    """
+    Converts the argument to an int if possible, otherwise returns string or None.
+    Handles negative integers as well.
+    """
+    if arg is None:
+        return None
+    arg = arg.strip()
+    try:
+        return int(arg)
+    except ValueError:
+        return arg
+
+
+def handle_command(raw_command: str):
+    from commands import COMMAND_REGISTRY as commands
+
+    command_key, argument = parse_command(raw_command)
+    
+    if command_key is None:
+        return
+
+    func = commands.get(command_key)
+    if not func:
+        print(f"Unknown command: {command_key}")
+        return
+
+    arg = convert_argument(argument)
+
+    try:
+        if arg is not None:
+            func(arg)
         else:
-            print(f"Unknown command: {command_key}")
-    elif len(split_command) == 1:
-        if command in commands:
-            commands[command]()
-        else:
-            print(f"Unknown command: {command}")
+            func()
+    except TypeError as e:
+        print(f"Error executing command '{command_key}': {e}")
+    except Exception as e:
+        print(f"An error occurred while executing '{command_key}': {e}")
+
 
 def command_loop():
     while True:
         cmd = input("\n> ")
         handle_command(cmd)
+
 
 def init_db():
     conn = sqlite3.connect('data.db')
@@ -66,6 +114,7 @@ def init_db():
         conn.commit()
 
     return conn
+
 
 def start():
     conn = init_db()
@@ -92,7 +141,7 @@ def start():
 
         if all(all(outcomes) for outcomes in results.values()):
             print("\nNicely done, you passed the first stage and earned 50 xp and 10 gold! Time for a little break")
-            print("You can type 'shop' and 'shop buy <character_name>' to use the shop and upgrade your character.")
+            print("You can type 'shop' and 'shop buy <character_name | character_position>' to use the shop and upgrade your character.")
             print("When you feel ready, type 'start' to resume the game.")
             c.execute("UPDATE progress SET gold = ?, xp = ?, first_time = 0, stage = 2 WHERE id = ?", (10, 50, data['id']))
             conn.commit()
@@ -127,6 +176,7 @@ def start():
 
             c.execute("UPDATE progress SET gold = ?, xp = ?, stage = ? WHERE id = ?", (data['gold'] + stage_rewards['gold'] + levels[new_level]['rewards']['gold'] if not new_level == current_level else 0, data['xp'] + stage_rewards['xp'], stage + 1, data['id']))
             conn.commit()
+
 
 if __name__ == "__main__":
     print("Welcome! Type 'start' to begin or other commands.")

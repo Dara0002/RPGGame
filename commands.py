@@ -1,7 +1,19 @@
 from characters import characters
 import sqlite3
-import uuid
 from main import start as start_game
+import sys
+
+COMMAND_REGISTRY = {}
+
+def command_name(name: str):
+    """
+    Decorator to register a function with a custom command name.
+    """
+    def decorator(func):
+        COMMAND_REGISTRY[name.lower()] = func
+        return func
+    return decorator
+
 
 def init_db():
     conn = sqlite3.connect('data.db')
@@ -9,11 +21,17 @@ def init_db():
 
     return conn
 
+
+@command_name("shop")
 def shop():
     for char, data in characters.items():
-        print(f"{char}:\n    " + "\n    ".join(f"{attr}: {stat}" for attr, stat in data.items()) + "\n")    
+        print(f"{char}:\n    " + "\n    ".join(f"{attr}: {stat}" 
+                                                for attr, stat in data.items() 
+                                                if attr[0] != "_") + "\n")   
 
-def shop_buy(name):
+
+@command_name("shop buy")
+def shop_buy(identifier: str | int):
     conn = init_db()
     c = conn.cursor()
 
@@ -26,17 +44,39 @@ def shop_buy(name):
         return
 
     gold = data['gold']
-    row_id = data['id']
+    progress_id = data['id']
+    name: str | None = None
+    character: dict | None = None
 
-    character = characters.get(name)
-    if character is None:
-        print(f"Character '{name}' not found.")
+    if isinstance(identifier, int):
+        if identifier > (len(characters) + 1):
+            print(f"Position {identifier} exceeds maximum range of {len(characters) + 1}. (invalid position)")
+
+        for character_name, character_data in characters.items():
+            if character_data["_position"] == identifier:
+                name = character_name
+                character = character_data
+                break
+
+        if name is None or character is None:
+            print(f"Could not find character with position {identifier}")
+            return
+
+    elif isinstance(identifier, str):
+        name = identifier.title()
+        character = characters.get(name)
+        if character is None:
+            print(f"Character '{name}' not found.")
+            conn.close()
+            return
+    else:
+        print("Invalid character identifier, must be the character's name or position")
         conn.close()
         return
 
     if gold >= character['price']:
         gold -= character['price']
-        c.execute("UPDATE progress SET gold = ?, character = ? WHERE id = ?", (gold, name, row_id))
+        c.execute("UPDATE progress SET gold = ?, character = ? WHERE id = ?", (gold, name, progress_id))
         conn.commit()
         print(f"Successfully bought {name}\n    Remaining gold: {gold}")
     else:
@@ -44,9 +84,13 @@ def shop_buy(name):
 
     conn.close()
 
+
+@command_name("start")
 def start():
     start_game()
 
+
+@command_name("profile")
 def profile():
     conn = init_db()
     c = conn.cursor()
@@ -54,3 +98,9 @@ def profile():
     data = c.fetchone()
     for key, value in dict(data).items():
         print(f"{key}: {value}")
+
+
+@command_name("exit")
+def exit():
+    print("Goodbye!")
+    sys.exit()
