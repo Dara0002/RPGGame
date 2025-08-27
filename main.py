@@ -129,7 +129,7 @@ def start():
 
     if data["first_time"] == 1:
         print("Welcome to the super duper good RPG Game!")
-        print("You will be starting with the " + data["character"] + " character")
+        print(f"You will be starting with the {data["character"]} character")
 
         for enemy, amount in stage_data["enemies"].items():
             results[enemy] = []
@@ -185,7 +185,7 @@ def start():
                     f"New level reached!\n    Level {current_level} -> Level {new_level}"
                 )
                 print(
-                    f"\n    rewards:\n        "
+                    "\n    rewards:\n        "
                     + "\n        ".join(
                         f"{key}: {value}" for key, value in level_rewards.items()
                     )

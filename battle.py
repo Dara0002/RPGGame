@@ -10,7 +10,7 @@ def attack(attacker: Monster | Character, attacked: Monster | Character):
         time.sleep(1)
         damage, health, defense = attacker.attack_target(attacked)
         print(
-            f"You attacked {attacked.name} for {str(damage)} damage and left them at {str(health)} health, {str(defense)} defense"
+            f"You attacked {attacked.name} for {str(damage)} damage and left them with {str(health)} health, {str(defense)} defense"
         )
     else:
         print(f"{attacker.name} is attacking...\n")
