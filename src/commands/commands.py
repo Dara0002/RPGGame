@@ -1,12 +1,17 @@
-from typing import Callable, NoReturn, Optional
-from src.data.characters import CHARACTER_TEMPLATES as characters
-from src.data.items import ITEM_TEMPLATES as items
-import sqlite3
-from src.main import start as start_game
+import src.state as state
 import sys
 import json
+from pyclbr import Function
+from typing import Callable, NoReturn
+from src.utils.database import get_database
+from src.data.characters import CHARACTER_TEMPLATES as characters
+from src.data.items import ITEM_TEMPLATES as items
+from src.main import start as start_game
+from src.utils.get_equipped import get_equipped
 
 COMMAND_REGISTRY = {}
+
+conn = get_database()
 
 
 def command_name(name: str) -> Callable[..., object]:
@@ -14,18 +19,11 @@ def command_name(name: str) -> Callable[..., object]:
     Decorator to register a function with a custom command name.
     """
 
-    def decorator(func):
+    def decorator(func) -> Function:
         COMMAND_REGISTRY[name.lower()] = func
         return func
 
     return decorator
-
-
-def init_db() -> sqlite3.Connection:
-    conn = sqlite3.connect("data.db")
-    conn.row_factory = sqlite3.Row
-
-    return conn
 
 
 @command_name("shop")
@@ -42,9 +40,7 @@ def shop() -> None:
 
 @command_name("shop buy")
 def shop_buy(identifier: str | int) -> None:
-    conn = init_db()
     c = conn.cursor()
-
     c.execute("SELECT gold FROM progress")
     data = c.fetchone()
 
@@ -74,11 +70,9 @@ def shop_buy(identifier: str | int) -> None:
         character = characters.get(name)
         if character is None:
             print(f"Character '{name}' not found.")
-            conn.close()
             return
     else:
         print("Invalid character identifier, must be the character's name or position")
-        conn.close()
         return
 
     if gold >= character["price"]:
@@ -94,30 +88,22 @@ def shop_buy(identifier: str | int) -> None:
             f"Not enough gold to buy {name}. You have {gold}, need {character['price']}."
         )
 
-    conn.close()
-
 
 @command_name("item")
-def item(identifier: str | int) -> None:
-    if isinstance(identifier, str):
-        name = identifier.title()
-        item = items.get(name)
-        if item is None:
-            print(f"Item '{name}' not found.")
-            return
+def item(identifier: str) -> None:
+    name = identifier.title()
+    item = items.get(name)
+    if not item:
+        print(f"Item '{name}' not found.")
+        return
 
-        print(
-            f"{name}:\n    "
-            + "\n    ".join(f"{key}: {value}" for key, value in items[name].items())
-        )
-
-    if isinstance(identifier, int):
-        # TODO add id to items
-        pass
+    print(
+        f"{name}:\n    "
+        + "\n    ".join(f"{key}: {value}" for key, value in items[name].items())
+    )
 
 
 def get_inventory() -> set[str]:
-    conn = init_db()
     c = conn.cursor()
     c.execute("SELECT inventory FROM progress")
     row = c.fetchone()
@@ -125,36 +111,30 @@ def get_inventory() -> set[str]:
     return set(json.loads(inventory))
 
 
-def get_equipped(item_type: Optional[str] = None) -> dict[str, str] | str:
-    conn = init_db()
-    c = conn.cursor()
-    c.execute("SELECT equipped FROM progress")
-    row = c.fetchone()
-    equipped = json.loads(row["equipped"])
-
-    if item_type is None:
-        return equipped
-
-    return equipped.get(item_type)
-
-
-def equip_item(identifier):
-    conn = init_db()
-    c = conn.cursor()
-
-    equipped: dict[str, str] = get_equipped()  # type: ignore
+def toggle_item(identifier: str, equip: bool) -> None:
+    equipped: dict[str, str | None] = get_equipped()  # type: ignore
     json_equipped = ""
 
-    if isinstance(identifier, str):
-        equipped[(items[identifier]["type"])] = identifier
-        json_equipped = json.dumps(equipped)
+    item = items.get(identifier)
+    if item is None:
+        print(f"Item '{identifier}' not found.")
+        return
 
-    elif isinstance(identifier, int):
-        pass
+    item_type = item.get("type")
+    if not isinstance(item_type, str):
+        print(f"Item '{identifier}' does not have a valid type.")
+        return
 
+    if equip:
+        equipped[item_type] = identifier
+    else:
+        equipped[item_type] = None
+
+    json_equipped = json.dumps(equipped)
+
+    c = conn.cursor()
     c.execute("UPDATE progress SET equipped = ?", (json_equipped,))
     conn.commit()
-    conn.close()
 
 
 @command_name("inventory")
@@ -185,20 +165,58 @@ def equip(identifier: str) -> None:
         print(f"You do not have '{name}' in your inventory.")
         return
 
-    if item_data["type"] == "potion":
+    if item_data.get("type") == "potion":
         print("Can't equip potions.")
         return
 
-    equipped_item = get_equipped(item_data["type"])
+    equipped_item = get_equipped(item_data.get("type"))
+
+    if equipped_item == name:
+        print(f"You already have {name} equipped")
+        return
+
     if equipped_item:
         print(
-            f"You currently have '{equipped_item}' equipped. "
+            f"You currently have {equipped_item} equipped. "
             f"Unequip it first using 'unequip {equipped_item}'"
         )
         return
 
-    equip_item(name)
-    print(f"'{name}' is now equipped.")
+    toggle_item(name, True)
+    print(f"Equiped {name}")
+
+    character = state.character
+    if not character:
+        print("Could not find character")
+        return
+
+    if item_data.get("type") == "weapon":
+        character.attack += item_data.get("attack", 0)
+    elif item_data.get("type") == "armor":
+        character.defense += item_data.get("defense", 0)
+
+
+@command_name("unequip")
+def unequip(identifier: str) -> None:
+
+    name = identifier.title()
+    item_data = items.get(name)
+
+    if not item_data:
+        print(f"Item '{name}' not found.")
+        return
+
+    if item_data.get("type") == "potion":
+        print("You can't unequip potions")
+
+    equipped_item = get_equipped(item_data.get("type"))
+
+    if not equipped_item:
+        print(f"You dont have {name} equipped")
+        return
+
+    toggle_item(name, False)
+    print(f"Unequiped {name}")
 
 
 @command_name("start")
@@ -208,12 +226,28 @@ def start() -> None:
 
 @command_name("profile")
 def profile() -> None:
-    conn = init_db()
     c = conn.cursor()
     c.execute("SELECT * FROM progress")
     data = c.fetchone()
     for key, value in dict(data).items():
         print(f"{key}: {value}")
+
+
+@command_name("character")
+def character() -> None:
+    character = state.character
+    if not character:
+        print("Could not find character")
+        return
+
+    print(
+        "Your character:\n    "
+        + "\n    ".join(
+            f"{attribute}: {value}"
+            for attribute, value in vars(character).items()
+            if not attribute.startswith("_")
+        )
+    )
 
 
 @command_name("help")
@@ -224,4 +258,5 @@ def help() -> None:
 @command_name("exit")
 def exit() -> NoReturn:
     print("Goodbye!")
+    conn.close()
     sys.exit()

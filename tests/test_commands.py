@@ -9,7 +9,11 @@ class MockCursor:
         return self
 
     def fetchone(self):
-        return {"id": "1", "gold": 500}
+        return {
+            "gold": 500,
+            "inventory": "[]",
+            "equipped": '{"armor": null, "weapon": null}',
+        }
 
 
 class MockConn:
@@ -27,7 +31,7 @@ class MockConn:
 
 @pytest.fixture(autouse=True)
 def mock_init_db():
-    with patch("src.commands.commands.init_db", return_value=MockConn()):
+    with patch("src.utils.database.get_database", return_value=MockConn()):
         yield
 
 
@@ -37,6 +41,12 @@ def test_command_runs(command_name):
 
     if command_name == "shop buy":
         func(2)
+    elif command_name == "equip":
+        func("iron sword")
+    elif command_name == "item":
+        func("iron sword")
+    elif command_name == "unequip":
+        func("iron sword")
     elif command_name == "exit":
         pass
     else:

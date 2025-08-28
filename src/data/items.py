@@ -1,4 +1,6 @@
-ITEM_TEMPLATES = {
+from src.types.types import Item
+
+ITEM_TEMPLATES: dict[str, Item] = {
     # Armors
     "Chainmail Armor": {
         "type": "armor",

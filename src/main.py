@@ -1,15 +1,20 @@
 import json
+import src.state as state
+from src.data.items import ITEM_TEMPLATES as items
 from src.battle import battle
-import sqlite3
 from src.types.types import Progress, Stage, Results
-from src.data.schemas import create_tables
 from src.data.characters import Character
+from src.data.characters import CHARACTER_TEMPLATES as characters
 from src.data.monsters import Monster
 from src.data.stages import stages
 from src.data.levels import levels
-from typing import NoReturn, Tuple, Optional, Union
+from typing import Tuple, Optional, Union
+from src.utils.database import get_database
+from src.utils.get_equipped import get_equipped
 
 first_run = True
+
+conn = get_database()
 
 
 def find_level_from_xp(xp: int) -> int | None:
@@ -93,40 +98,47 @@ def handle_command(raw_command: str) -> None:
         print(f"An error occurred while executing '{command_key}': {e}")
 
 
-def command_loop() -> NoReturn:
-    init_db()
+def command_loop() -> None:
+    data = load_progress()
+    if not data:
+        print("Could not load player data")
+        return
+
+    setup_player(data)
 
     while True:
         cmd = input("\n> ")
         handle_command(cmd)
 
 
-def init_db() -> sqlite3.Connection:
-    conn = sqlite3.connect("data.db")
-    conn.row_factory = sqlite3.Row
-
-    create_tables(conn)
-
-    c = conn.cursor()
-    c.execute("SELECT * FROM progress")
-    data = c.fetchone()
-
-    if data is None:
-        c.execute("INSERT INTO progress (first_time) VALUES (?)", "1")
+def load_progress() -> Progress:
+    c = get_database().cursor()
+    data = c.execute("SELECT * FROM progress").fetchone()
+    if not data:
+        c.execute("INSERT INTO progress (first_time) VALUES (?)", ("1"))
         conn.commit()
 
-    return conn
+    return c.execute("SELECT * FROM progress").fetchone()
 
 
-def load_progress() -> Tuple[sqlite3.Connection, sqlite3.Cursor, Progress]:
-    conn = init_db()
-    c = conn.cursor()
-    c.execute("SELECT * FROM progress")
-    return conn, c, c.fetchone()
+def setup_player(data: Progress) -> Character:
+    character = Character(data["character"])
+    state.character = character
 
+    equipped = get_equipped()
+    for item_type, item in equipped.items():  # type: ignore
+        if item:
+            item_data = items.get(item)
+            if not item_data:
+                print(f"Could not find item data for equipped item '{item}'")
+                continue
 
-def setup_player(data) -> Character:
-    return Character(data["character"])
+            if item_type == "weapon":
+                character.attack += item_data.get("attack", 0)
+            elif item_type == "armor":
+                character.defense += item_data.get("defense", 0)
+
+    return character
 
 
 def run_stage_battles(player: Character, stage_data: Stage) -> Results:
@@ -143,7 +155,17 @@ def run_stage_battles(player: Character, stage_data: Stage) -> Results:
     return results
 
 
-def handle_stage_completion(c, conn, data, stage, stage_data, results) -> None:
+def handle_stage_completion(data, stage, stage_data, results) -> None:
+    if state.character is None:
+        raise ValueError("No character in state")
+
+    char_key = data["character"]
+    if char_key not in characters:
+        raise KeyError(f"Character {char_key} not found")
+
+    state.character.health = characters[char_key]["health"]
+    state.character.defense = characters[char_key]["defense"]
+
     if not all(all(outcomes) for outcomes in results.values()):
         return
 
@@ -182,6 +204,7 @@ def handle_stage_completion(c, conn, data, stage, stage_data, results) -> None:
 
     inventory_str = json.dumps(merged_inventory)
 
+    c = conn.cursor()
     c.execute(
         "UPDATE progress SET gold = ?, xp = ?, stage = ?, inventory = ?",
         (
@@ -197,11 +220,12 @@ def handle_stage_completion(c, conn, data, stage, stage_data, results) -> None:
             inventory_str,
         ),
     )
+
     conn.commit()
 
 
 def start() -> None:
-    conn, c, data = load_progress()
+    data = load_progress()
     stage_value = data["stage"]
     if isinstance(stage_value, dict):
         raise ValueError(f"Invalid stage value: {stage_value}")
@@ -224,14 +248,17 @@ def start() -> None:
                 "You can type 'shop' and 'shop buy <character_name | character_position>' to use the shop and upgrade your character."
             )
             print("When you feel ready, type 'start' to resume the game.")
+
+            c = conn.cursor()
             c.execute(
                 "UPDATE progress SET gold = ?, xp = ?, first_time = 0, stage = 2",
                 (10, 50),
             )
+
             conn.commit()
     else:
         results = run_stage_battles(player, stage_data)
-        handle_stage_completion(c, conn, data, stage, stage_data, results)
+        handle_stage_completion(data, stage, stage_data, results)
 
 
 if __name__ == "__main__":

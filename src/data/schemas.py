@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS progress (
 """
 
 
-def create_tables(conn):
+def create_tables(conn) -> None:
     c = conn.cursor()
     c.execute(PROGRESS_SCHEMA)
     conn.commit()
