@@ -1,4 +1,5 @@
 import pytest
+import json
 from unittest.mock import patch
 from src.commands.commands import COMMAND_REGISTRY
 
@@ -9,10 +10,10 @@ class MockCursor:
         return self
 
     def fetchone(self):
-        return {
+        return json.dumps{
             "gold": 500,
             "inventory": [],
-            "equipped": {"armor": null, "weapon": null},
+            "equipped": {"armor": None, "weapon": None},
         }
 
 
