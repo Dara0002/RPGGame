@@ -2,7 +2,7 @@ import uuid
 from src.utils.randomDamage import random_damage
 from typing import Optional
 
-MONSTER_TEMPLATES = {
+MONSTER_TEMPLATES: dict[str, dict[str, int]] = {
     "Goblin": {"health": 50, "attack": 8, "defense": 5},
     "Skeleton": {"health": 60, "attack": 10, "defense": 7},
     "Orc Warrior": {"health": 80, "attack": 14, "defense": 10},
@@ -42,13 +42,11 @@ class Monster:
 
     def attack_target(self, target) -> tuple[int, int, int]:
         damage, health, defense = random_damage(
-            self.attack,
-            target.health,
-            target.defense
+            self.attack, target.health, target.defense
         )
         target.health = health
         target.defense = defense
         return damage, target.health, target.defense
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"Monster(ID: {self.id}, Name: {self.name}, HP: {self.health}, Attack: {self.attack}, Defense: {self.defense})"

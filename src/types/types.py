@@ -12,7 +12,8 @@ class Progress(TypedDict):
     xp: int
     gold: int
     character: str
-    inventory: Dict[str, int]
+    inventory: List[str]
+    equipped: Dict[str, str]
     first_time: int
 
 

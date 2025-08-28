@@ -3,18 +3,20 @@ import random
 from src.data.characters import Character
 from src.data.monsters import Monster
 
+WAIT_TIME_BEFORE_ATTACK = 0.1
+
 
 def attack(attacker: Monster | Character, attacked: Monster | Character):
     if isinstance(attacker, Character):
         print(f"Attacking {attacked.name}...\n")
-        time.sleep(1)
+        time.sleep(WAIT_TIME_BEFORE_ATTACK)
         damage, health, defense = attacker.attack_target(attacked)
         print(
             f"You attacked {attacked.name} for {str(damage)} damage and left them with {str(health)} health, {str(defense)} defense"
         )
     else:
         print(f"{attacker.name} is attacking...\n")
-        time.sleep(1)
+        time.sleep(WAIT_TIME_BEFORE_ATTACK)
         damage, health, defense = attacker.attack_target(attacked)
         print(
             f"You were attacked by {attacker.name} for {str(damage)} damage and left with {str(health)} health, {str(defense)} defense"

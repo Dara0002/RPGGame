@@ -1,6 +1,6 @@
+import json
 from src.battle import battle
 import sqlite3
-import uuid
 from src.types.types import Progress, Stage, Results
 from src.data.schemas import create_tables
 from src.data.characters import Character
@@ -94,6 +94,8 @@ def handle_command(raw_command: str) -> None:
 
 
 def command_loop() -> NoReturn:
+    init_db()
+
     while True:
         cmd = input("\n> ")
         handle_command(cmd)
@@ -110,7 +112,7 @@ def init_db() -> sqlite3.Connection:
     data = c.fetchone()
 
     if data is None:
-        c.execute("INSERT INTO progress (id) VALUES (?)", (str(uuid.uuid4()),))
+        c.execute("INSERT INTO progress (first_time) VALUES (?)", "1")
         conn.commit()
 
     return conn
@@ -159,18 +161,29 @@ def handle_stage_completion(c, conn, data, stage, stage_data, results) -> None:
 
     if current_level != new_level:
         level_rewards = levels[new_level]["rewards"]
-        print(f"New level reached!\n    Level {current_level} -> Level {new_level}")
+        print(f"\nNew level reached!\n    Level {current_level} -> Level {new_level}")
         print(
             "\n    rewards:\n        "
-            + "\n        ".join(f"{k}: {v}" for k, v in level_rewards.items())
+            + "\n        ".join(
+                f"{reward}: {value}" for reward, value in level_rewards.items()
+            )
         )
 
     print(
-        f"Level progress: \n    Level: {new_level}\n    {data['xp'] + stage_rewards['xp']} / {levels[new_level + 1]['xp_required']}"
+        f"\nLevel progress: \n    Level: {new_level}\n    {data['xp'] + stage_rewards['xp']} / {levels[new_level + 1]['xp_required']}"
     )
 
+    current_inventory = json.loads(data["inventory"])
+    new_items = (
+        levels[new_level]["rewards"]["items"] if new_level != current_level else []
+    )
+
+    merged_inventory = list(set(current_inventory + new_items))
+
+    inventory_str = json.dumps(merged_inventory)
+
     c.execute(
-        "UPDATE progress SET gold = ?, xp = ?, stage = ? WHERE id = ?",
+        "UPDATE progress SET gold = ?, xp = ?, stage = ?, inventory = ?",
         (
             (
                 data["gold"]
@@ -181,7 +194,7 @@ def handle_stage_completion(c, conn, data, stage, stage_data, results) -> None:
             ),
             data["xp"] + stage_rewards["xp"],
             stage + 1,
-            data["id"],
+            inventory_str,
         ),
     )
     conn.commit()
@@ -212,8 +225,8 @@ def start() -> None:
             )
             print("When you feel ready, type 'start' to resume the game.")
             c.execute(
-                "UPDATE progress SET gold = ?, xp = ?, first_time = 0, stage = 2 WHERE id = ?",
-                (10, 50, data["id"]),
+                "UPDATE progress SET gold = ?, xp = ?, first_time = 0, stage = 2",
+                (10, 50),
             )
             conn.commit()
     else:

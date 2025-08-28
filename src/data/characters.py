@@ -3,7 +3,7 @@ from src.utils.randomDamage import random_damage
 from typing import Optional
 from src.types.types import Target
 
-CHARACTER_TEMPLATES = {
+CHARACTER_TEMPLATES: dict[str, dict[str, int]] = {
     "Novice Squire": {
         "health": 90,
         "attack": 12,
@@ -162,7 +162,9 @@ class Character:
         self.name = name
 
         if name not in CHARACTER_TEMPLATES:
-            raise ValueError(f"Character template '{name}' not found in characters_data.")
+            raise ValueError(
+                f"Character template '{name}' not found in characters_data."
+            )
 
         template = CHARACTER_TEMPLATES[name]
         self.health = health if health is not None else template["health"]
@@ -173,9 +175,7 @@ class Character:
 
     def attack_target(self, target: Target) -> tuple[int, int, int]:
         damage, health, defense = random_damage(
-            self.attack,
-            target.health,
-            target.defense
+            self.attack, target.health, target.defense
         )
         target.health = health
         target.defense = defense

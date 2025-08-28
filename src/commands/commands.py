@@ -1,8 +1,10 @@
-from typing import Callable
+from typing import Callable, NoReturn, Optional
 from src.data.characters import CHARACTER_TEMPLATES as characters
+from src.data.items import ITEM_TEMPLATES as items
 import sqlite3
 from src.main import start as start_game
 import sys
+import json
 
 COMMAND_REGISTRY = {}
 
@@ -19,7 +21,7 @@ def command_name(name: str) -> Callable[..., object]:
     return decorator
 
 
-def init_db():
+def init_db() -> sqlite3.Connection:
     conn = sqlite3.connect("data.db")
     conn.row_factory = sqlite3.Row
 
@@ -27,7 +29,7 @@ def init_db():
 
 
 @command_name("shop")
-def shop():
+def shop() -> None:
     for char, data in characters.items():
         print(
             f"{char}:\n    "
@@ -39,28 +41,23 @@ def shop():
 
 
 @command_name("shop buy")
-def shop_buy(identifier: str | int):
+def shop_buy(identifier: str | int) -> None:
     conn = init_db()
     c = conn.cursor()
 
-    c.execute("SELECT id, gold FROM progress")
+    c.execute("SELECT gold FROM progress")
     data = c.fetchone()
 
-    if not data:
-        print("No progress data found.")
-        conn.close()
-        return
-
     gold = data["gold"]
-    progress_id = data["id"]
     name: str | None = None
     character: dict | None = None
 
     if isinstance(identifier, int):
-        if identifier > (len(characters) + 1):
+        if identifier > (len(characters)):
             print(
-                f"Position {identifier} exceeds maximum range of {len(characters) + 1}. (invalid position)"
+                f"Position {identifier} exceeds maximum range of {len(characters)}. (invalid position)"
             )
+            return
 
         for character_name, character_data in characters.items():
             if character_data["_position"] == identifier:
@@ -87,8 +84,8 @@ def shop_buy(identifier: str | int):
     if gold >= character["price"]:
         gold -= character["price"]
         c.execute(
-            "UPDATE progress SET gold = ?, character = ? WHERE id = ?",
-            (gold, name, progress_id),
+            "UPDATE progress SET gold = ?, character = ?",
+            (gold, name),
         )
         conn.commit()
         print(f"Successfully bought {name}\n    Remaining gold: {gold}")
@@ -100,13 +97,117 @@ def shop_buy(identifier: str | int):
     conn.close()
 
 
+@command_name("item")
+def item(identifier: str | int) -> None:
+    if isinstance(identifier, str):
+        name = identifier.title()
+        item = items.get(name)
+        if item is None:
+            print(f"Item '{name}' not found.")
+            return
+
+        print(
+            f"{name}:\n    "
+            + "\n    ".join(f"{key}: {value}" for key, value in items[name].items())
+        )
+
+    if isinstance(identifier, int):
+        # TODO add id to items
+        pass
+
+
+def get_inventory() -> set[str]:
+    conn = init_db()
+    c = conn.cursor()
+    c.execute("SELECT inventory FROM progress")
+    row = c.fetchone()
+    inventory = row["inventory"]
+    return set(json.loads(inventory))
+
+
+def get_equipped(item_type: Optional[str] = None) -> dict[str, str] | str:
+    conn = init_db()
+    c = conn.cursor()
+    c.execute("SELECT equipped FROM progress")
+    row = c.fetchone()
+    equipped = json.loads(row["equipped"])
+
+    if item_type is None:
+        return equipped
+
+    return equipped.get(item_type)
+
+
+def equip_item(identifier):
+    conn = init_db()
+    c = conn.cursor()
+
+    equipped: dict[str, str] = get_equipped()  # type: ignore
+    json_equipped = ""
+
+    if isinstance(identifier, str):
+        equipped[(items[identifier]["type"])] = identifier
+        json_equipped = json.dumps(equipped)
+
+    elif isinstance(identifier, int):
+        pass
+
+    c.execute("UPDATE progress SET equipped = ?", (json_equipped,))
+    conn.commit()
+    conn.close()
+
+
+@command_name("inventory")
+def inventory() -> None:
+    parsed_inventory = get_inventory()
+    equipped: dict[str, str] = get_equipped()  # type: ignore
+    if parsed_inventory:
+        print(", ".join(item for item in parsed_inventory))
+    else:
+        print("Empty")
+
+    print(
+        f"Equipped:\n    Armor: {equipped.get("armor")}\n    Weapon: {equipped.get("weapon")}"
+    )
+
+
+@command_name("equip")
+def equip(identifier: str) -> None:
+    name = identifier.title()
+    item_data = items.get(name)
+
+    if not item_data:
+        print(f"Item '{name}' not found.")
+        return
+
+    inventory = get_inventory()
+    if name not in inventory:
+        print(f"You do not have '{name}' in your inventory.")
+        return
+
+    if item_data["type"] == "potion":
+        print("Can't equip potions.")
+        return
+
+    equipped_item = get_equipped(item_data["type"])
+    if equipped_item:
+        print(
+            f"You currently have '{equipped_item}' equipped. "
+            f"Unequip it first using 'unequip {equipped_item}'"
+        )
+        return
+
+    equip_item(name)
+    print(f"'{name}' is now equipped.")
+
+
 @command_name("start")
-def start():
+def start() -> None:
     start_game()
 
 
 @command_name("profile")
-def profile():
+def profile() -> None:
     conn = init_db()
     c = conn.cursor()
     c.execute("SELECT * FROM progress")
@@ -115,7 +216,12 @@ def profile():
         print(f"{key}: {value}")
 
 
+@command_name("help")
+def help() -> None:
+    print("Commands:\n    " + "\n    ".join(command for command in COMMAND_REGISTRY))
+
+
 @command_name("exit")
-def exit():
+def exit() -> NoReturn:
     print("Goodbye!")
     sys.exit()

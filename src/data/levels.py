@@ -2,8 +2,8 @@ from src.types.types import Level
 
 levels: dict[int, Level] = {
     1: {"xp_required": 0, "rewards": {"gold": 0, "items": []}},
-    2: {"xp_required": 100, "rewards": {"gold": 100, "items": ["Minor Potion"]}},
-    3: {"xp_required": 250, "rewards": {"gold": 150, "items": ["Iron Sword"]}},
+    2: {"xp_required": 100, "rewards": {"gold": 100, "items": ["Iron Sword"]}},
+    3: {"xp_required": 250, "rewards": {"gold": 150, "items": ["Minor Potion"]}},
     4: {"xp_required": 500, "rewards": {"gold": 200, "items": []}},
     5: {"xp_required": 800, "rewards": {"gold": 250, "items": ["Chainmail Armor"]}},
     6: {"xp_required": 1200, "rewards": {"gold": 300, "items": ["Minor Potion"]}},
