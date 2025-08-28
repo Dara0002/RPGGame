@@ -38,7 +38,8 @@ def shop() -> None:
 
 @command_name("shop buy")
 def shop_buy(identifier: str | int) -> None:
-    c = get_database().cursor()
+    conn = get_database()
+    c = conn.cursor()
     c.execute("SELECT gold FROM progress")
     data = c.fetchone()
 
@@ -102,7 +103,8 @@ def item(identifier: str) -> None:
 
 
 def get_inventory() -> set[str]:
-    c = get_database().cursor()
+    conn = get_database()
+    c = conn.cursor()
     c.execute("SELECT inventory FROM progress")
     row = c.fetchone()
     inventory = row["inventory"]
@@ -130,6 +132,7 @@ def toggle_item(identifier: str, equip: bool) -> None:
 
     json_equipped = json.dumps(equipped)
 
+    conn = get_database()
     c = conn.cursor()
     c.execute("UPDATE progress SET equipped = ?", (json_equipped,))
     conn.commit()
@@ -224,6 +227,7 @@ def start() -> None:
 
 @command_name("profile")
 def profile() -> None:
+    conn = get_database()
     c = conn.cursor()
     c.execute("SELECT * FROM progress")
     data = c.fetchone()
@@ -256,5 +260,5 @@ def help() -> None:
 @command_name("exit")
 def exit() -> NoReturn:
     print("Goodbye!")
-    conn.close()
+    get_database().close()
     sys.exit()
