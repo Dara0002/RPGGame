@@ -10,11 +10,11 @@ class MockCursor:
         return self
 
     def fetchone(self):
-        return json.dumps({
+        return {
             "gold": 500,
-            "inventory": [],
-            "equipped": {"armor": None, "weapon": None},
-        })
+            "inventory": json.dumps([]),
+            "equipped": json.dumps({"armor": None, "weapon": None}),
+        }
 
 
 class MockConn:
