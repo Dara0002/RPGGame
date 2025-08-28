@@ -11,8 +11,6 @@ from src.utils.get_equipped import get_equipped
 
 COMMAND_REGISTRY = {}
 
-conn = get_database()
-
 
 def command_name(name: str) -> Callable[..., object]:
     """
@@ -40,7 +38,7 @@ def shop() -> None:
 
 @command_name("shop buy")
 def shop_buy(identifier: str | int) -> None:
-    c = conn.cursor()
+    c = get_database().cursor()
     c.execute("SELECT gold FROM progress")
     data = c.fetchone()
 
@@ -104,7 +102,7 @@ def item(identifier: str) -> None:
 
 
 def get_inventory() -> set[str]:
-    c = conn.cursor()
+    c = get_database().cursor()
     c.execute("SELECT inventory FROM progress")
     row = c.fetchone()
     inventory = row["inventory"]
