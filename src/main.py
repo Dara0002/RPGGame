@@ -164,7 +164,7 @@ def handle_stage_completion(data, stage, stage_data, results) -> None:
         raise KeyError(f"Character {char_key} not found")
 
     state.character.health = characters[char_key]["health"]
-    state.character.defense = characters[char_key]["defense"]
+    state.character.defense = characters[char_key]["defense"]  # TODO add the buffs from armor
 
     if not all(all(outcomes) for outcomes in results.values()):
         return
@@ -251,8 +251,7 @@ def start() -> None:
 
             c = conn.cursor()
             c.execute(
-                "UPDATE progress SET gold = ?, xp = ?, first_time = 0, stage = 2",
-                (10, 50),
+                "UPDATE progress SET gold = 10, xp = 50, first_time = 0, stage = 2"
             )
 
             conn.commit()
