@@ -6,7 +6,7 @@ from src.data.schemas import create_tables
 from src.data.characters import Character
 from src.data.monsters import Monster
 from src.data.stages import stages
-from data.levels import levels
+from src.data.levels import levels
 from typing import NoReturn, Tuple, Optional, Union
 
 first_run = True
