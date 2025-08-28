@@ -11,8 +11,8 @@ class MockCursor:
     def fetchone(self):
         return {
             "gold": 500,
-            "inventory": "[]",
-            "equipped": '{"armor": null, "weapon": null}',
+            "inventory": [],
+            "equipped": {"armor": null, "weapon": null},
         }
 
 
