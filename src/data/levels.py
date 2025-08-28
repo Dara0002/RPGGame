@@ -1,4 +1,6 @@
-levels = {
+from src.types.types import Level
+
+levels: dict[int, Level] = {
     1: {"xp_required": 0, "rewards": {"gold": 0, "items": []}},
     2: {"xp_required": 100, "rewards": {"gold": 100, "items": ["Minor Potion"]}},
     3: {"xp_required": 250, "rewards": {"gold": 150, "items": ["Iron Sword"]}},

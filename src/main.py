@@ -1,35 +1,35 @@
 from src.battle import battle
 import sqlite3
 import uuid
+from src.types.types import Progress, Stage, Results
 from src.data.schemas import create_tables
-from src.types.types import Stage
 from src.data.characters import Character
 from src.data.monsters import Monster
 from src.data.stages import stages
-from src.data.level import levels
-from typing import Tuple, Optional, Union
+from data.levels import levels
+from typing import NoReturn, Tuple, Optional, Union
 
 first_run = True
 
 
-def find_level_from_xp(xp):
+def find_level_from_xp(xp: int) -> int | None:
     for key, data in levels.items():
         if data["xp_required"] <= xp and levels[key + 1]["xp_required"] > xp:
             return key
     return None
 
 
-def xp_until_next_level(xp):
-    current_level: int | None = find_level_from_xp(xp)
+def xp_until_next_level(xp: int) -> int:
+    current_level = find_level_from_xp(xp)
     if current_level is not None:
         next_level = current_level + 1
     else:
         next_level = None
     if next_level is not None and next_level in levels:
-        next_level_xp = levels[next_level]
+        next_level_xp_required = levels[next_level]["xp_required"]
     else:
-        next_level_xp = None
-    return next_level_xp - xp
+        next_level_xp_required = None
+    return next_level_xp_required - xp if next_level_xp_required is not None else 0
 
 
 def parse_command(raw: str) -> Tuple[Optional[str], Optional[str]]:
@@ -67,7 +67,7 @@ def convert_argument(arg: Optional[str]) -> Union[str, int, None]:
         return arg
 
 
-def handle_command(raw_command: str):
+def handle_command(raw_command: str) -> None:
     from src.commands.commands import COMMAND_REGISTRY as commands
 
     command_key, argument = parse_command(raw_command)
@@ -93,13 +93,13 @@ def handle_command(raw_command: str):
         print(f"An error occurred while executing '{command_key}': {e}")
 
 
-def command_loop():
+def command_loop() -> NoReturn:
     while True:
         cmd = input("\n> ")
         handle_command(cmd)
 
 
-def init_db():
+def init_db() -> sqlite3.Connection:
     conn = sqlite3.connect("data.db")
     conn.row_factory = sqlite3.Row
 
@@ -116,19 +116,19 @@ def init_db():
     return conn
 
 
-def load_progress():
+def load_progress() -> Tuple[sqlite3.Connection, sqlite3.Cursor, Progress]:
     conn = init_db()
     c = conn.cursor()
     c.execute("SELECT * FROM progress")
     return conn, c, c.fetchone()
 
 
-def setup_player(data):
+def setup_player(data) -> Character:
     return Character(data["character"])
 
 
-def run_stage_battles(player, stage_data):
-    results = {}
+def run_stage_battles(player: Character, stage_data: Stage) -> Results:
+    results: Results = {}
     for enemy, amount in stage_data["enemies"].items():
         results[enemy] = []
         for i in range(1, amount + 1):
@@ -141,7 +141,7 @@ def run_stage_battles(player, stage_data):
     return results
 
 
-def handle_stage_completion(c, conn, data, stage, stage_data, results):
+def handle_stage_completion(c, conn, data, stage, stage_data, results) -> None:
     if not all(all(outcomes) for outcomes in results.values()):
         return
 
@@ -187,9 +187,12 @@ def handle_stage_completion(c, conn, data, stage, stage_data, results):
     conn.commit()
 
 
-def start():
+def start() -> None:
     conn, c, data = load_progress()
-    stage = int(data["stage"])
+    stage_value = data["stage"]
+    if isinstance(stage_value, dict):
+        raise ValueError(f"Invalid stage value: {stage_value}")
+    stage = int(stage_value)
     stage_data: Stage = stages[stage]
 
     player = setup_player(data)

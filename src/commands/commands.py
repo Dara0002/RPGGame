@@ -1,4 +1,5 @@
-from src.data.characters import characters
+from typing import Callable
+from src.data.characters import CHARACTER_TEMPLATES as characters
 import sqlite3
 from src.main import start as start_game
 import sys
@@ -6,7 +7,7 @@ import sys
 COMMAND_REGISTRY = {}
 
 
-def command_name(name: str):
+def command_name(name: str) -> Callable[..., object]:
     """
     Decorator to register a function with a custom command name.
     """

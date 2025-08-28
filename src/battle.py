@@ -21,7 +21,7 @@ def attack(attacker: Monster | Character, attacked: Monster | Character):
         )
 
 
-def battle(player: Character, enemy: Monster):
+def battle(player: Character, enemy: Monster) -> bool:
     turn = 0
     first_turn = None
 
@@ -64,3 +64,6 @@ def battle(player: Character, enemy: Monster):
             return True
 
         continue
+
+    # in case anything fails
+    return False

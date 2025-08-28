@@ -1,8 +1,9 @@
-from src.utils.randomDamage import random_damage
 import uuid
+from src.utils.randomDamage import random_damage
 from typing import Optional
+from src.types.types import Target
 
-characters = {
+CHARACTER_TEMPLATES = {
     "Novice Squire": {
         "health": 90,
         "attack": 12,
@@ -152,30 +153,33 @@ class Character:
     def __init__(
         self,
         name: str = "Unknown",
-        given_uuid: Optional[str] = None,
+        id: Optional[str] = None,
         health: Optional[int] = None,
         attack: Optional[int] = None,
         defense: Optional[int] = None,
     ):
-        self.uuid = given_uuid or str(uuid.uuid4())
+        self.id = id or str(uuid.uuid4())
         self.name = name
-        self.health = health if health is not None else characters[name]["health"]
-        self.attack = attack if attack is not None else characters[name]["attack"]
-        self.defense = defense if defense is not None else characters[name]["defense"]
 
-        Character.characters[self.uuid] = self
+        if name not in CHARACTER_TEMPLATES:
+            raise ValueError(f"Character template '{name}' not found in characters_data.")
 
-    def attack_target(self, target):
+        template = CHARACTER_TEMPLATES[name]
+        self.health = health if health is not None else template["health"]
+        self.attack = attack if attack is not None else template["attack"]
+        self.defense = defense if defense is not None else template["defense"]
+
+        Character.characters[self.id] = self
+
+    def attack_target(self, target: Target) -> tuple[int, int, int]:
         damage, health, defense = random_damage(
-            self.attack, target.defense, target.health
+            self.attack,
+            target.health,
+            target.defense
         )
         target.health = health
         target.defense = defense
         return damage, target.health, target.defense
 
-    def __str__(self):
-        return f"Character(UUID: {self.uuid}, Name: {self.name}, HP: {self.health}, Attack: {self.attack}, Defense: {self.defense})"
-
-    @classmethod
-    def get_character(cls, uuid):
-        return cls.characters.get(uuid)
+    def __str__(self) -> str:
+        return f"Character(ID: {self.id}, Name: {self.name}, HP: {self.health}, Attack: {self.attack}, Defense: {self.defense})"

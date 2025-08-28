@@ -1,8 +1,8 @@
-from src.utils.randomDamage import random_damage
 import uuid
+from src.utils.randomDamage import random_damage
 from typing import Optional
 
-monsters = {
+MONSTER_TEMPLATES = {
     "Goblin": {"health": 50, "attack": 8, "defense": 5},
     "Skeleton": {"health": 60, "attack": 10, "defense": 7},
     "Orc Warrior": {"health": 80, "attack": 14, "defense": 10},
@@ -22,34 +22,33 @@ class Monster:
     def __init__(
         self,
         name: str = "Unknown",
-        given_uuid: Optional[str] = None,
+        id: Optional[str] = None,
         health: Optional[int] = None,
         attack: Optional[int] = None,
         defense: Optional[int] = None,
     ):
-        self.uuid = given_uuid or str(uuid.uuid4())
+        self.id = id or str(uuid.uuid4())
         self.name = name
 
-        if name not in monsters:
+        if name not in MONSTER_TEMPLATES:
             raise ValueError(f"Monster template '{name}' not found in monsters_data.")
 
-        self.health = health if health is not None else monsters[name]["health"]
-        self.attack = attack if attack is not None else monsters[name]["attack"]
-        self.defense = defense if defense is not None else monsters[name]["defense"]
+        template = MONSTER_TEMPLATES[name]
+        self.health = health if health is not None else template["health"]
+        self.attack = attack if attack is not None else template["attack"]
+        self.defense = defense if defense is not None else template["defense"]
 
-        Monster.monsters[self.uuid] = self
+        Monster.monsters[self.id] = self
 
-    def attack_target(self, target):
+    def attack_target(self, target) -> tuple[int, int, int]:
         damage, health, defense = random_damage(
-            self.attack, target.defense, target.health
+            self.attack,
+            target.health,
+            target.defense
         )
         target.health = health
         target.defense = defense
         return damage, target.health, target.defense
 
     def __str__(self):
-        return f"Monster(UUID: {self.uuid}, Name: {self.name}, HP: {self.health}, Attack: {self.attack}, Defense: {self.defense})"
-
-    @classmethod
-    def get_monster(cls, uuid):
-        return cls.monsters.get(uuid)
+        return f"Monster(ID: {self.id}, Name: {self.name}, HP: {self.health}, Attack: {self.attack}, Defense: {self.defense})"
