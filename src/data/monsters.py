@@ -5,14 +5,14 @@ from typing import Optional
 MONSTER_TEMPLATES: dict[str, dict[str, int]] = {
     "Goblin": {"health": 50, "attack": 8, "defense": 5},
     "Skeleton": {"health": 60, "attack": 10, "defense": 7},
-    "Orc Warrior": {"health": 80, "attack": 14, "defense": 10},
-    "Troll": {"health": 100, "attack": 18, "defense": 12},
-    "Dark Wolf": {"health": 120, "attack": 22, "defense": 15},
-    "Wraith": {"health": 130, "attack": 25, "defense": 17},
-    "Giant Spider": {"health": 150, "attack": 28, "defense": 20},
-    "Harpy": {"health": 170, "attack": 30, "defense": 22},
-    "Wyvern": {"health": 190, "attack": 33, "defense": 25},
-    "Demon Lord": {"health": 220, "attack": 38, "defense": 30},
+    "Orc Warrior": {"health": 80, "attack": 12, "defense": 10},
+    "Troll": {"health": 100, "attack": 14, "defense": 12},
+    "Dark Wolf": {"health": 120, "attack": 18, "defense": 15},
+    "Wraith": {"health": 130, "attack": 22, "defense": 17},
+    "Giant Spider": {"health": 150, "attack": 25, "defense": 20},
+    "Harpy": {"health": 170, "attack": 28, "defense": 22},
+    "Wyvern": {"health": 190, "attack": 31, "defense": 25},
+    "Demon Lord": {"health": 220, "attack": 35, "defense": 30},
 }
 
 

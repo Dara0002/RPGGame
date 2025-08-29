@@ -4,32 +4,16 @@ from unittest.mock import patch
 from src.commands.commands import COMMAND_REGISTRY
 
 
-class MockRow:
-    def __init__(self, data):
-        self._data = data
-
-    def __getitem__(self, key):
-        value = self._data[key]
-        return value
-
-    def items(self):
-        return self._data.items()
-
-    def get(self, key, default=None):
-        value = self._data.get(key, default)
-        return value
-
-
 class MockCursor:
     def execute(self, *args, **kwargs):
         return self
 
     def fetchone(self):
-        return MockRow({
+        return {
             "gold": 500,
             "inventory": json.dumps([]),
             "equipped": json.dumps({"armor": None, "weapon": None}),
-        })
+        }
 
     def fetchall(self):
         return [self.fetchone()]

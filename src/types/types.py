@@ -17,9 +17,14 @@ class Progress(TypedDict):
     first_time: int
 
 
+class Rewards(TypedDict):
+    gold: int
+    items: List
+
+
 class Level(TypedDict):
     xp_required: int
-    rewards: Dict[str, int | List[str]]
+    rewards: Rewards
 
 
 class Item(TypedDict, total=False):

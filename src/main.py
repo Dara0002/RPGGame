@@ -104,7 +104,7 @@ def command_loop() -> None:
         print("Could not load player data")
         return
 
-    setup_player(data)
+    setup_player()
 
     while True:
         cmd = input("\n> ")
@@ -121,22 +121,28 @@ def load_progress() -> Progress:
     return c.execute("SELECT * FROM progress").fetchone()
 
 
-def setup_player(data: Progress) -> Character:
-    character = Character(data["character"])
-    state.character = character
+def setup_player() -> Character:
+    data = load_progress()
+    character = state.character or Character(data["character"])
 
-    equipped = get_equipped()
-    for item_type, item in equipped.items():  # type: ignore
-        if item:
-            item_data = items.get(item)
-            if not item_data:
-                print(f"Could not find item data for equipped item '{item}'")
-                continue
+    character.health = characters[data["character"]]["health"]
+    character.defense = characters[data["character"]]["defense"]
 
-            if item_type == "weapon":
-                character.attack += item_data.get("attack", 0)
-            elif item_type == "armor":
-                character.defense += item_data.get("defense", 0)
+    if not state.character:
+        equipped = get_equipped()
+        for item_type, item in equipped.items():  # type: ignore
+            if item:
+                item_data = items.get(item)
+                if not item_data:
+                    print(f"Could not find item data for equipped item '{item}'")
+                    continue
+
+                if item_type == "weapon":
+                    character.attack += item_data.get("attack", 0)
+                elif item_type == "armor":
+                    character.defense += item_data.get("defense", 0)
+
+    state.character = state.character if state.character else character
 
     return character
 
@@ -155,20 +161,13 @@ def run_stage_battles(player: Character, stage_data: Stage) -> Results:
     return results
 
 
-def handle_stage_completion(data, stage, stage_data, results) -> None:
-    if state.character is None:
-        raise ValueError("No character in state")
-
-    char_key = data["character"]
-    if char_key not in characters:
-        raise KeyError(f"Character {char_key} not found")
-
-    state.character.health = characters[char_key]["health"]
-    state.character.defense = characters[char_key]["defense"]  # TODO add the buffs from armor
+def handle_stage_completion(stage, stage_data, results) -> None:
+    setup_player()
 
     if not all(all(outcomes) for outcomes in results.values()):
         return
 
+    data = load_progress()
     stage_rewards = stage_data["rewards"]
     current_level = find_level_from_xp(data["xp"])
     new_level = find_level_from_xp(data["xp"] + stage_rewards["xp"])
@@ -195,12 +194,12 @@ def handle_stage_completion(data, stage, stage_data, results) -> None:
         f"\nLevel progress: \n    Level: {new_level}\n    {data['xp'] + stage_rewards['xp']} / {levels[new_level + 1]['xp_required']}"
     )
 
-    current_inventory = json.loads(data["inventory"])
+    current_inventory = json.loads(data["inventory"])  # type: ignore
     new_items = (
         levels[new_level]["rewards"]["items"] if new_level != current_level else []
     )
 
-    merged_inventory = list(set(current_inventory + new_items))
+    merged_inventory = current_inventory + new_items
 
     inventory_str = json.dumps(merged_inventory)
 
@@ -232,7 +231,7 @@ def start() -> None:
     stage = int(stage_value)
     stage_data: Stage = stages[stage]
 
-    player = setup_player(data)
+    player = setup_player()
 
     if data["first_time"] == 1:
         print("Welcome to the super duper good RPG Game!")
@@ -255,9 +254,11 @@ def start() -> None:
             )
 
             conn.commit()
+
+            setup_player()
     else:
         results = run_stage_battles(player, stage_data)
-        handle_stage_completion(data, stage, stage_data, results)
+        handle_stage_completion(stage, stage_data, results)
 
 
 if __name__ == "__main__":

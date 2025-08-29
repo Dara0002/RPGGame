@@ -4,7 +4,7 @@ import json
 from pyclbr import Function
 from typing import Callable, NoReturn
 from src.utils.database import get_database
-from src.data.characters import CHARACTER_TEMPLATES as characters
+from src.data.characters import CHARACTER_TEMPLATES as characters, Character
 from src.data.items import ITEM_TEMPLATES as items
 from src.main import start as start_game
 from src.utils.get_equipped import get_equipped
@@ -36,50 +36,77 @@ def shop() -> None:
         )
 
 
-@command_name("shop buy")
-def shop_buy(identifier: str | int) -> None:
-    conn = get_database()
-    c = conn.cursor()
-    c.execute("SELECT gold FROM progress")
-    data = c.fetchone()
-    gold = data["gold"]
-    name: str | None = None
-    character: dict | None = None
-
+def get_character(identifier: str | int) -> tuple[str, dict] | None:
+    """Return (name, character_data) or None if not found."""
     if isinstance(identifier, int):
-        if identifier > (len(characters)):
-            print(
-                f"Position {identifier} exceeds maximum range of {len(characters)}. (invalid position)"
-            )
-            return
-
-        for character_name, character_data in characters.items():
-            if character_data["_position"] == identifier:
-                name = character_name
-                character = character_data
-                break
-
-        if name is None or character is None:
-            print(f"Could not find character with position {identifier}")
-            return
+        if identifier > len(characters):
+            print(f"Position {identifier} exceeds maximum range of {len(characters)}.")
+            return None
+        for name, char in characters.items():
+            if char["_position"] == identifier:
+                return name, char
+        print(f"Could not find character with position {identifier}")
+        return None
 
     elif isinstance(identifier, str):
         name = identifier.title()
         character = characters.get(name)
         if character is None:
             print(f"Character '{name}' not found.")
-            return
+            return None
+        return name, character
+
     else:
-        print("Invalid character identifier, must be the character's name or position")
+        print("Invalid identifier: must be name or position")
+        return None
+
+
+def apply_equipped_items(character: "Character") -> None:
+    equipped = get_equipped()
+    for item_type, item in equipped.items():  # type: ignore
+        if not item:
+            continue
+        item_data = items.get(item)
+        if not item_data:
+            print(f"Could not find item data for equipped item '{item}'")
+            continue
+
+        if item_type == "weapon":
+            character.attack += item_data.get("attack", 0)
+        elif item_type == "armor":
+            character.defense += item_data.get("defense", 0)
+
+
+def can_afford(gold: int, price: int) -> bool:
+    return gold >= price
+
+
+@command_name("shop buy")
+def shop_buy(identifier: str | int) -> None:
+    conn = get_database()
+    c = conn.cursor()
+
+    c.execute("SELECT gold FROM progress")
+    data = c.fetchone()
+    gold = data["gold"]
+
+    char_info = get_character(identifier)
+    if not char_info:
         return
 
-    if gold >= character["price"]:
+    name, character = char_info
+
+    if can_afford(gold, character["price"]):
         gold -= character["price"]
         c.execute(
             "UPDATE progress SET gold = ?, character = ?",
             (gold, name),
         )
         conn.commit()
+
+        state.character = Character(name)
+        apply_equipped_items(state.character)
+
         print(f"Successfully bought {name}\n    Remaining gold: {gold}")
     else:
         print(
@@ -218,6 +245,16 @@ def unequip(identifier: str) -> None:
     toggle_item(name, False)
     print(f"Unequiped {name}")
 
+    character = state.character
+    if not character:
+        print("Could not find character")
+        return
+
+    if item_data.get("type") == "weapon":
+        character.attack -= item_data.get("attack", 0)
+    elif item_data.get("type") == "armor":
+        character.defense -= item_data.get("defense", 0)
+
 
 @command_name("start")
 def start() -> None:
@@ -230,7 +267,7 @@ def profile() -> None:
     c = conn.cursor()
     c.execute("SELECT * FROM progress")
     data = c.fetchone()
-    for key, value in data.items():
+    for key, value in dict(data).items():
         print(f"{key}: {value}")
 
 
