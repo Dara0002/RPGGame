@@ -4,17 +4,35 @@ from unittest.mock import patch
 from src.commands.commands import COMMAND_REGISTRY
 
 
-# Mock database connection for commands that use it
+class MockRow:
+    def __init__(self, data):
+        self._data = data
+
+    def __getitem__(self, key):
+        value = self._data[key]
+        return value
+
+    def items(self):
+        return self._data.items()
+
+    def get(self, key, default=None):
+        value = self._data.get(key, default)
+        return value
+
+
 class MockCursor:
     def execute(self, *args, **kwargs):
         return self
 
     def fetchone(self):
-        return {
+        return MockRow({
             "gold": 500,
             "inventory": json.dumps([]),
             "equipped": json.dumps({"armor": None, "weapon": None}),
-        }
+        })
+
+    def fetchall(self):
+        return [self.fetchone()]
 
 
 class MockConn:
@@ -32,8 +50,19 @@ class MockConn:
 
 @pytest.fixture(autouse=True)
 def mock_init_db():
-    with patch("src.utils.database.get_database", return_value=MockConn()):
-        yield
+
+    modules_to_patch = [
+        "src.commands.commands.get_database",
+        "src.utils.get_equipped.get_database",
+    ]
+
+    patches = [patch(m, return_value=MockConn()) for m in modules_to_patch]
+    for p in patches:
+        p.start()
+    yield
+
+    for p in patches:
+        p.stop()
 
 
 @pytest.mark.parametrize("command_name", list(COMMAND_REGISTRY.keys()))

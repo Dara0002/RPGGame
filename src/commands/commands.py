@@ -42,7 +42,6 @@ def shop_buy(identifier: str | int) -> None:
     c = conn.cursor()
     c.execute("SELECT gold FROM progress")
     data = c.fetchone()
-
     gold = data["gold"]
     name: str | None = None
     character: dict | None = None
@@ -231,7 +230,7 @@ def profile() -> None:
     c = conn.cursor()
     c.execute("SELECT * FROM progress")
     data = c.fetchone()
-    for key, value in dict(data).items():
+    for key, value in data.items():
         print(f"{key}: {value}")
 
 
